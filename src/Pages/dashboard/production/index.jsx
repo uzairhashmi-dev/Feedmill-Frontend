@@ -1,7 +1,5 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { Toaster } from "react-hot-toast";
-import { toast } from "react-hot-toast";
+import { useState, useCallback, useRef } from "react";
+import { toast, Toaster } from "react-hot-toast";
 import {
   Plus, Trash2, Loader2, Eye, Edit3,
   Search, RefreshCw, BarChart2,
@@ -9,14 +7,10 @@ import {
 } from "lucide-react";
 
 import {
-  loadProductions, searchProductionItems,
-  createProductionItem, updateProductionItem, deleteProductionItem,
-  clearProductionSearch,
-  selectDisplayProductions, selectProductions,
-  selectProductionFormulas, selectProductionLoading,
-  selectProductionSubmitting, selectProductionDeleting,
-  selectProductionSearch,
-} from "../../../store/productionSlice";
+  useGetProductionsQuery, useLazySearchProductionsQuery,
+  useCreateProductionItemMutation, useUpdateProductionItemMutation,
+  useDeleteProductionItemMutation,
+} from "../../../store/api/apiSlice";
 
 import { EMPTY_FORM } from "./constants";
 import StatCard      from "./components/StatCard";
@@ -27,15 +21,15 @@ import ViewDrawer    from "./components/ViewDrawer";
 import AnalyticsSection from "./components/AnalyticsSection";
 
 const Production = () => {
-  const dispatch = useDispatch();
+  const { data, isFetching: loading, refetch } = useGetProductionsQuery();
+  const allProductions = data?.productions ?? [];
+  const formulas        = data?.formulas ?? [];
 
-  const productions  = useSelector(selectDisplayProductions);
-  const allProductions = useSelector(selectProductions);
-  const formulas     = useSelector(selectProductionFormulas);
-  const loading      = useSelector(selectProductionLoading);
-  const submitting   = useSelector(selectProductionSubmitting);
-  const deleting     = useSelector(selectProductionDeleting);
-  const searchResults = useSelector(selectProductionSearch);
+  const [createProductionItem, { isLoading: creating }] = useCreateProductionItemMutation();
+  const [updateProductionItem, { isLoading: updating }] = useUpdateProductionItemMutation();
+  const [deleteProductionItem, { isLoading: deleting }]  = useDeleteProductionItemMutation();
+  const [triggerSearch] = useLazySearchProductionsQuery();
+  const submitting = creating || updating;
 
   const [showModal,     setShowModal]     = useState(false);
   const [showDelete,    setShowDelete]    = useState(false);
@@ -45,9 +39,8 @@ const Production = () => {
   const [deletingBatch, setDeletingBatch] = useState(null);
   const [formData,      setFormData]      = useState(EMPTY_FORM);
   const [searchTerm,    setSearchTerm]    = useState("");
+  const [searchResults, setSearchResults] = useState(null);
   const searchTimeout = useRef(null);
-
-  useEffect(() => { dispatch(loadProductions()) }, [dispatch]);
 
   const openAdd = () => {
     setEditingId(null);
@@ -81,23 +74,30 @@ const Production = () => {
     if (Number(formData.quantity) <= 0) return toast.error("Quantity must be greater than 0");
     if (Number(formData.waste) < 0)     return toast.error("Waste cannot be negative");
 
-    const result = editingId
-      ? await dispatch(updateProductionItem({ id: editingId, formData }))
-      : await dispatch(createProductionItem(formData));
+    try {
+      const success = editingId
+        ? await updateProductionItem({ id: editingId, formData }).unwrap()
+        : await createProductionItem(formData).unwrap();
 
-    const ok = result?.payload === true;
-    if (ok) {
-      toast.success(
-        editingId ? "Batch updated successfully!" : "Batch started successfully!",
-        { position: "top-right", style: { zIndex: 9999 } }
-      );
-      closeModal();
+      if (success === true) {
+        toast.success(
+          editingId ? "Batch updated successfully!" : "Batch started successfully!",
+          { position: "top-right", style: { zIndex: 9999 } }
+        );
+        closeModal();
+      }
+    } catch {
+      // error toast already shown by apiSlice
     }
   };
 
   const onDeleteConfirm = async () => {
     if (!deletingBatch) return;
-    await dispatch(deleteProductionItem(deletingBatch._id));
+    try {
+      await deleteProductionItem(deletingBatch._id).unwrap();
+    } catch {
+      // error toast already shown by apiSlice
+    }
     setShowDelete(false);
     setDeletingBatch(null);
   };
@@ -106,13 +106,18 @@ const Production = () => {
     const val = e.target.value;
     setSearchTerm(val);
     clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(() => {
-      if (val.trim()) dispatch(searchProductionItems(val));
-      else dispatch(clearProductionSearch());
+    searchTimeout.current = setTimeout(async () => {
+      if (val.trim()) {
+        const { data } = await triggerSearch(val);
+        setSearchResults(data ?? []);
+      } else {
+        setSearchResults(null);
+      }
     }, 400);
-  }, [dispatch]);
+  }, [triggerSearch]);
 
   const isSearching    = searchResults !== null || searchTerm.trim().length > 0;
+  const productions    = searchResults !== null ? searchResults : allProductions;
   const totalCost      = allProductions.reduce((s, p) => s + (p.totalCost  || 0), 0);
   const completedCount = allProductions.filter((p) => p.status === "Completed").length;
   const runningCount   = allProductions.filter((p) => p.status === "Running").length;
@@ -188,7 +193,7 @@ const Production = () => {
               />
               {searchTerm && (
                 <button
-                  onClick={() => { setSearchTerm(""); dispatch(clearProductionSearch()); }}
+                  onClick={() => { setSearchTerm(""); setSearchResults(null); }}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   <X size={14} />
@@ -197,7 +202,7 @@ const Production = () => {
             </div>
 
             <button
-              onClick={() => dispatch(loadProductions())}
+              onClick={() => refetch()}
               className="border border-gray-200 dark:border-gray-700
                          text-gray-600 dark:text-gray-300
                          p-2.5 rounded-xl
