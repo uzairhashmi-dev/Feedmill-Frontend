@@ -1,5 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useState, useRef, useCallback } from "react";
 import { toast, Toaster } from "react-hot-toast";
 import {
   Plus, Edit3, Trash2, Loader2, Eye,
@@ -8,12 +7,10 @@ import {
 } from "lucide-react";
 
 import {
-  loadOrders, searchOrderItems, clearSearch,
-  createOrderItem, updateOrderItem, deleteOrderItem,
-  selectDisplayOrders, selectAllOrders, selectOrderFormulas,
-  selectStockSummary, selectOrderMonthly, selectOrderLoading,
-  selectOrderSubmitting, selectOrderDeleting, selectOrderSearch,
-} from "../../../store/orderSlice";
+  useGetOrdersQuery, useLazySearchOrdersQuery,
+  useCreateOrderItemMutation, useUpdateOrderItemMutation,
+  useDeleteOrderItemMutation,
+} from "../../../store/api/apiSlice";
 
 import { EMPTY_FORM } from "./constants";
 import StatCard       from "./components/StatCard";
@@ -26,17 +23,17 @@ import InvoiceModal   from "./components/InvoiceModal";
 import AnalyticsSection from "./components/AnalyticsSection";
 
 const Sales = () => {
-  const dispatch = useDispatch();
+  const { data, isFetching: loading, refetch } = useGetOrdersQuery();
+  const allOrders    = data?.orders ?? [];
+  const formulas     = data?.formulas ?? [];
+  const stockSummary = data?.stockSummary ?? [];
+  const monthlyStats = data?.monthlyStats ?? null;
 
-  const orders       = useSelector(selectDisplayOrders);
-  const allOrders    = useSelector(selectAllOrders);
-  const formulas     = useSelector(selectOrderFormulas);
-  const stockSummary = useSelector(selectStockSummary);
-  const monthlyStats = useSelector(selectOrderMonthly);
-  const loading      = useSelector(selectOrderLoading);
-  const submitting   = useSelector(selectOrderSubmitting);
-  const deleting     = useSelector(selectOrderDeleting);
-  const searchResults = useSelector(selectOrderSearch);
+  const [createOrderItem, { isLoading: creating }] = useCreateOrderItemMutation();
+  const [updateOrderItem, { isLoading: updating }] = useUpdateOrderItemMutation();
+  const [deleteOrderItem, { isLoading: deleting }]  = useDeleteOrderItemMutation();
+  const [triggerSearch] = useLazySearchOrdersQuery();
+  const submitting = creating || updating;
 
   const [showModal,     setShowModal]     = useState(false);
   const [showDelete,    setShowDelete]    = useState(false);
@@ -47,9 +44,8 @@ const Sales = () => {
   const [deletingOrder, setDeletingOrder] = useState(null);
   const [formData,      setFormData]      = useState(EMPTY_FORM);
   const [searchTerm,    setSearchTerm]    = useState("");
+  const [searchResults, setSearchResults] = useState(null);
   const searchTimeout = useRef(null);
-
-  useEffect(() => { dispatch(loadOrders()) }, [dispatch]);
 
   const openAdd = () => { setEditingId(null); setFormData(EMPTY_FORM); setShowModal(true); };
   const openEdit = (order) => {
@@ -74,19 +70,27 @@ const Sales = () => {
     if (Number(formData.price)    <= 0) return toast.error("Price must be greater than 0");
     if (Number(formData.paymentPaid) < 0) return toast.error("Payment paid cannot be negative");
 
-    const result = editingId
-      ? await dispatch(updateOrderItem({ id: editingId, formData }))
-      : await dispatch(createOrderItem(formData));
+    try {
+      const success = editingId
+        ? await updateOrderItem({ id: editingId, formData }).unwrap()
+        : await createOrderItem(formData).unwrap();
 
-    if (result?.payload === true) {
-      toast.success(editingId ? "Order updated!" : "Order created!", { position:"top-right", style:{zIndex:9999} });
-      closeModal();
+      if (success === true) {
+        toast.success(editingId ? "Order updated!" : "Order created!", { position:"top-right", style:{zIndex:9999} });
+        closeModal();
+      }
+    } catch {
+      // error toast already shown by apiSlice
     }
   };
 
   const onDeleteConfirm = async () => {
     if (!deletingOrder) return;
-    await dispatch(deleteOrderItem(deletingOrder._id));
+    try {
+      await deleteOrderItem(deletingOrder._id).unwrap();
+    } catch {
+      // error toast already shown by apiSlice
+    }
     setShowDelete(false); setDeletingOrder(null);
   };
 
@@ -94,13 +98,18 @@ const Sales = () => {
     const val = e.target.value;
     setSearchTerm(val);
     clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(() => {
-      if (val.trim()) dispatch(searchOrderItems(val));
-      else dispatch(clearSearch());
+    searchTimeout.current = setTimeout(async () => {
+      if (val.trim()) {
+        const { data } = await triggerSearch(val);
+        setSearchResults(data ?? []);
+      } else {
+        setSearchResults(null);
+      }
     }, 400);
-  }, [dispatch]);
+  }, [triggerSearch]);
 
   const isSearching    = searchResults !== null || searchTerm.trim().length > 0;
+  const orders         = searchResults !== null ? searchResults : allOrders;
   const totalRevenue   = allOrders.reduce((s, o) => s + (o.totalPayment  || 0), 0);
   const pendingPayment = allOrders.reduce((s, o) => s + (o.paymentPending || 0), 0);
   const completedCount = allOrders.filter((o) => o.status === "Completed").length;
@@ -174,13 +183,13 @@ const Sales = () => {
                 value={searchTerm} onChange={onSearchChange}
               />
               {searchTerm && (
-                <button onClick={() => { setSearchTerm(""); dispatch(clearSearch()); }}
+                <button onClick={() => { setSearchTerm(""); setSearchResults(null); }}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                   <X size={14} />
                 </button>
               )}
             </div>
-            <button onClick={() => dispatch(loadOrders())}
+            <button onClick={() => refetch()}
               className="border border-gray-200 dark:border-gray-700
                          text-gray-600 dark:text-gray-300 p-2.5 rounded-xl
                          hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors" title="Refresh">
