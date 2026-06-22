@@ -1,7 +1,5 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { Toaster } from "react-hot-toast";
-import { toast } from "react-hot-toast";
+import { useState, useCallback, useRef } from "react";
+import { toast, Toaster } from "react-hot-toast";
 import {
   Plus, FlaskConical, Loader2,
   Search, RefreshCw, X,
@@ -9,14 +7,10 @@ import {
 } from "lucide-react";
 
 import {
-  loadFormulas, searchFormulaItems,
-  createFormulaItem, updateFormulaItem, deleteFormulaItem,
-  clearFormulaSearch,
-  selectDisplayFormulas, selectFormulas,
-  selectFormulaCategories, selectFormulaInventory,
-  selectFormulaLoading, selectFormulaSubmitting,
-  selectFormulaDeleting, selectFormulaSearchResults,
-} from "../../../store/formulaSlice";
+  useGetFormulasQuery, useLazySearchFormulasQuery,
+  useCreateFormulaItemMutation, useUpdateFormulaItemMutation,
+  useDeleteFormulaItemMutation,
+} from "../../../store/api/apiSlice";
 
 import { EMPTY_FORM } from "./constants";
 import StatCard        from "./components/StatCard";
@@ -28,16 +22,16 @@ import ViewDrawer      from "./components/ViewDrawer";
 import AnalyticsSection from "./components/AnalyticsSection";
 
 const Formulation = () => {
-  const dispatch = useDispatch();
+  const { data, isFetching: loading, refetch } = useGetFormulasQuery();
+  const allFormulas    = data?.formulas ?? [];
+  const categories     = data?.categories ?? [];
+  const inventoryItems = data?.inventoryItems ?? [];
 
-  const formulas       = useSelector(selectDisplayFormulas);
-  const allFormulas    = useSelector(selectFormulas);
-  const categories     = useSelector(selectFormulaCategories);
-  const inventoryItems = useSelector(selectFormulaInventory);
-  const loading        = useSelector(selectFormulaLoading);
-  const submitting     = useSelector(selectFormulaSubmitting);
-  const deleting       = useSelector(selectFormulaDeleting);
-  const searchResults  = useSelector(selectFormulaSearchResults);
+  const [createFormulaItem, { isLoading: creating }] = useCreateFormulaItemMutation();
+  const [updateFormulaItem, { isLoading: updating }] = useUpdateFormulaItemMutation();
+  const [deleteFormulaItem, { isLoading: deleting }]  = useDeleteFormulaItemMutation();
+  const [triggerSearch] = useLazySearchFormulasQuery();
+  const submitting = creating || updating;
 
   const [showModal,       setShowModal]       = useState(false);
   const [showDelete,      setShowDelete]       = useState(false);
@@ -47,9 +41,8 @@ const Formulation = () => {
   const [deletingFormula, setDeletingFormula] = useState(null);
   const [formData,        setFormData]        = useState(EMPTY_FORM);
   const [searchTerm,      setSearchTerm]      = useState("");
+  const [searchResults,   setSearchResults]   = useState(null);
   const searchTimeout = useRef(null);
-
-  useEffect(() => { dispatch(loadFormulas()) }, [dispatch]);
 
   const openAdd = () => {
     setEditingId(null);
@@ -89,23 +82,30 @@ const Formulation = () => {
       return toast.error("All ingredient rows must have an item selected");
     }
 
-    const result = editingId
-      ? await dispatch(updateFormulaItem({ id: editingId, formData }))
-      : await dispatch(createFormulaItem(formData));
+    try {
+      const success = editingId
+        ? await updateFormulaItem({ id: editingId, formData }).unwrap()
+        : await createFormulaItem(formData).unwrap();
 
-    const ok = result?.payload === true;
-    if (ok) {
-      toast.success(
-        editingId ? "Formula updated successfully!" : "Formula created successfully!",
-        { position: "top-right", style: { zIndex: 9999 } }
-      );
-      closeModal();
+      if (success === true) {
+        toast.success(
+          editingId ? "Formula updated successfully!" : "Formula created successfully!",
+          { position: "top-right", style: { zIndex: 9999 } }
+        );
+        closeModal();
+      }
+    } catch {
+      // error toast already shown by apiSlice
     }
   };
 
   const onDeleteConfirm = async () => {
     if (!deletingFormula) return;
-    await dispatch(deleteFormulaItem(deletingFormula._id));
+    try {
+      await deleteFormulaItem(deletingFormula._id).unwrap();
+    } catch {
+      // error toast already shown by apiSlice
+    }
     setShowDelete(false);
     setDeletingFormula(null);
   };
@@ -114,13 +114,18 @@ const Formulation = () => {
     const val = e.target.value;
     setSearchTerm(val);
     clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(() => {
-      if (val.trim()) dispatch(searchFormulaItems(val));
-      else dispatch(clearFormulaSearch());
+    searchTimeout.current = setTimeout(async () => {
+      if (val.trim()) {
+        const { data } = await triggerSearch(val);
+        setSearchResults(data ?? []);
+      } else {
+        setSearchResults(null);
+      }
     }, 400);
-  }, [dispatch]);
+  }, [triggerSearch]);
 
   const isSearching = searchResults !== null || searchTerm.trim().length > 0;
+  const formulas = searchResults !== null ? searchResults : allFormulas;
 
   const totalCost    = allFormulas.reduce((s, f) => s + (f.costPerMT || 0), 0);
   const avgCost      = allFormulas.length ? Math.round(totalCost / allFormulas.length) : 0;
@@ -209,7 +214,7 @@ const Formulation = () => {
               />
               {searchTerm && (
                 <button
-                  onClick={() => { setSearchTerm(""); dispatch(clearFormulaSearch()); }}
+                  onClick={() => { setSearchTerm(""); setSearchResults(null); }}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   <X size={14} />
@@ -219,7 +224,7 @@ const Formulation = () => {
 
             {/* Refresh */}
             <button
-              onClick={() => dispatch(loadFormulas())}
+              onClick={() => refetch()}
               className="border border-gray-200 dark:border-gray-700
                          text-gray-600 dark:text-gray-300
                          p-2.5 rounded-xl
