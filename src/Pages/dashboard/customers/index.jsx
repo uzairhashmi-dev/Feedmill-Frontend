@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Toaster } from "react-hot-toast";
 import {
   Loader2, Eye, Search, RefreshCw, X,
@@ -7,77 +8,46 @@ import {
 } from "lucide-react";
 
 import {
-  useGetOrdersQuery, useLazySearchOrdersQuery,
-} from "../../../store/api/apiSlice";
+  loadCustomers, searchCustomers, clearSearch, setSelectedCustomer,
+  selectAllCustomers, selectDisplayCustomers, selectMonthlyStats,
+  selectCustomerLoading, selectSearchResults, selectSelectedCustomer,
+} from "../../../store/customerSlice";
 
 import StatCard        from "./components/StatCard";
 import PaymentBadge    from "./components/PaymentBadge";
 import CustomerDrawer  from "./components/CustomerDrawer";
 import AnalyticsSection from "./components/AnalyticsSection";
 
-// ── same buildCustomers logic as the old customerSlice
-const buildCustomers = (orders) => {
-  const map = {}
-  orders.forEach((order) => {
-    const name = order.customerName
-    if (!map[name]) {
-      map[name] = {
-        customerName: name, totalOrders: 0, completedOrders: 0,
-        pendingOrders: 0, cancelledOrders: 0, totalRevenue: 0,
-        totalPaid: 0, totalPending: 0, totalQuantityKG: 0,
-        lastOrderDate: null, orders: [], hasOutstanding: false,
-      }
-    }
-    const c = map[name]
-    c.totalOrders     += 1
-    c.totalRevenue    += order.totalPayment   || 0
-    c.totalPaid       += order.paymentPaid    || 0
-    c.totalPending    += order.paymentPending || 0
-    c.totalQuantityKG += order.quantityKG     || 0
-    c.orders.push(order)
-    if (order.status === 'Completed') c.completedOrders += 1
-    if (order.status === 'Pending')   c.pendingOrders   += 1
-    if (order.status === 'Cancelled') c.cancelledOrders += 1
-    const d = new Date(order.createdAt)
-    if (!c.lastOrderDate || d > new Date(c.lastOrderDate)) c.lastOrderDate = order.createdAt
-    if (order.paymentPending > 0 && order.status !== 'Cancelled') c.hasOutstanding = true
-  })
-  return Object.values(map).sort((a, b) => b.totalRevenue - a.totalRevenue)
-}
-
 const Customers = () => {
-  const { data, isFetching: loading, refetch } = useGetOrdersQuery();
-  const monthlyStats = data?.monthlyStats ?? null;
-  // memoized so buildCustomers only re-runs when the underlying orders actually change
-  const allCustomers = useMemo(() => buildCustomers(data?.orders ?? []), [data?.orders]);
+  const dispatch = useDispatch();
 
-  const [triggerSearch] = useLazySearchOrdersQuery();
+  const customers        = useSelector(selectDisplayCustomers);
+  const allCustomers     = useSelector(selectAllCustomers);
+  const monthlyStats     = useSelector(selectMonthlyStats);
+  const loading          = useSelector(selectCustomerLoading);
+  const searchResults    = useSelector(selectSearchResults);
+  const selectedCustomer = useSelector(selectSelectedCustomer);
 
-  const [showAnalytics,    setShowAnalytics]    = useState(false);
-  const [searchTerm,       setSearchTerm]       = useState("");
-  const [searchResults,    setSearchResults]    = useState(null);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [searchTerm,    setSearchTerm]    = useState("");
   const searchTimeout = useRef(null);
+
+  useEffect(() => { dispatch(loadCustomers()) }, [dispatch]);
 
   const onSearchChange = useCallback((e) => {
     const val = e.target.value;
     setSearchTerm(val);
     clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(async () => {
-      if (val.trim()) {
-        const { data } = await triggerSearch(val);
-        setSearchResults(buildCustomers(data ?? []));
-      } else {
-        setSearchResults(null);
-      }
+    searchTimeout.current = setTimeout(() => {
+      if (val.trim()) dispatch(searchCustomers(val));
+      else dispatch(clearSearch());
     }, 400);
-  }, [triggerSearch]);
+  }, [dispatch]);
 
-  const customers     = searchResults !== null ? searchResults : allCustomers;
-  const isSearching   = searchResults !== null || searchTerm.trim().length > 0;
-  const totalRevenue  = allCustomers.reduce((s, c) => s + c.totalRevenue, 0);
-  const totalPaid     = allCustomers.reduce((s, c) => s + c.totalPaid,    0);
-  const totalPending  = allCustomers.reduce((s, c) => s + c.totalPending, 0);
+  const isSearching  = searchResults !== null || searchTerm.trim().length > 0;
+  const totalRevenue = allCustomers.reduce((s, c) => s + c.totalRevenue, 0);
+  const totalPaid    = allCustomers.reduce((s, c) => s + c.totalPaid,    0);
+  const totalPending = allCustomers.reduce((s, c) => s + c.totalPending, 0);
   const outstandingCount = allCustomers.filter((c) => c.hasOutstanding).length;
 
   return (
@@ -181,14 +151,14 @@ const Customers = () => {
               />
               {searchTerm && (
                 <button
-                  onClick={() => { setSearchTerm(""); setSearchResults(null); }}
+                  onClick={() => { setSearchTerm(""); dispatch(clearSearch()); }}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   <X size={14} />
                 </button>
               )}
             </div>
-            <button onClick={() => refetch()}
+            <button onClick={() => dispatch(loadCustomers())}
               className="border border-gray-200 dark:border-gray-700
                          text-gray-600 dark:text-gray-300
                          p-2.5 rounded-xl
@@ -295,7 +265,7 @@ const Customers = () => {
                     <td className="px-4 py-4">
                       <div className="flex justify-end">
                         <button
-                          onClick={() => setSelectedCustomer(customer)}
+                          onClick={() => dispatch(setSelectedCustomer(customer))}
                           className="p-2 text-gray-400 hover:text-blue-500
                                      hover:bg-blue-50 dark:hover:bg-blue-900/30
                                      rounded-lg transition-all"
@@ -331,7 +301,7 @@ const Customers = () => {
       {selectedCustomer && (
         <CustomerDrawer
           customer={selectedCustomer}
-          onClose={() => setSelectedCustomer(null)}
+          onClose={() => dispatch(setSelectedCustomer(null))}
         />
       )}
     </div>

@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Toaster } from "react-hot-toast";
 import {
   Trash2, Loader2, Eye,
@@ -9,9 +10,12 @@ import {
 } from "lucide-react";
 
 import {
-  useGetOrdersQuery, useLazySearchOrdersQuery,
-  useDeleteOrderItemMutation,
-} from "../../../store/api/apiSlice";
+  loadOrders, searchOrderItems, clearSearch, deleteOrderItem,
+  selectAllOrders, selectStockSummary,
+  selectOrderMonthly, selectOrderLoading,
+  selectOrderDeleting, selectOrderSearch,
+  selectOrderTotalStats,
+} from "../../../store/orderSlice";
 
 import StatCard    from "../orders/components/StatCard";
 import DeleteModal from "../orders/components/DeleteModal";
@@ -20,14 +24,15 @@ import StockCard      from "./components/StockCard";
 import SalesAnalytics from "./components/SalesAnalytics";
 
 const Sales = () => {
-  const { data, isFetching: loading, refetch } = useGetOrdersQuery();
-  const allOrders    = data?.orders ?? [];
-  const stockSummary = data?.stockSummary ?? [];
-  const monthlyStats = data?.monthlyStats ?? null;
-  const totalStats   = data?.totalStats ?? null;
+  const dispatch = useDispatch();
 
-  const [deleteOrderItem, { isLoading: deleting }] = useDeleteOrderItemMutation();
-  const [triggerSearch] = useLazySearchOrdersQuery();
+  const allOrders    = useSelector(selectAllOrders);
+  const stockSummary = useSelector(selectStockSummary);
+  const monthlyStats = useSelector(selectOrderMonthly);
+  const totalStats   = useSelector(selectOrderTotalStats);
+  const loading      = useSelector(selectOrderLoading);
+  const deleting     = useSelector(selectOrderDeleting);
+  const searchResults = useSelector(selectOrderSearch);
 
   const completedOrders = allOrders.filter((o) => o.status === "Completed");
 
@@ -36,8 +41,9 @@ const Sales = () => {
   const [viewOrder,     setViewOrder]     = useState(null);
   const [deletingOrder, setDeletingOrder] = useState(null);
   const [searchTerm,    setSearchTerm]    = useState("");
-  const [searchResults, setSearchResults] = useState(null);
   const searchTimeout = useRef(null);
+
+  useEffect(() => { dispatch(loadOrders()) }, [dispatch]);
 
   const searchCompleted = searchResults !== null
     ? searchResults.filter((o) => o.status === "Completed")
@@ -48,28 +54,20 @@ const Sales = () => {
 
   const onDeleteConfirm = async () => {
     if (!deletingOrder) return;
-    try {
-      await deleteOrderItem(deletingOrder._id).unwrap();
-    } catch {
-      // error toast already shown by apiSlice
-    }
+    await dispatch(deleteOrderItem(deletingOrder._id));
     setShowDelete(false);
     setDeletingOrder(null);
   };
 
-  const onSearchChange = useCallback((e) => {
-    const val = e.target.value;
-    setSearchTerm(val);
-    clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(async () => {
-      if (val.trim()) {
-        const { data } = await triggerSearch(val);
-        setSearchResults(data ?? []);
-      } else {
-        setSearchResults(null);
-      }
-    }, 400);
-  }, [triggerSearch]);
+ const onSearchChange = useCallback((e) => {
+  const val = e.target.value;
+  setSearchTerm(val);
+  clearTimeout(searchTimeout.current);
+  searchTimeout.current = setTimeout(() => {
+    if (val.trim()) dispatch(searchOrderItems(val));
+    else dispatch(clearSearch());
+  }, 400);
+}, [dispatch, setSearchTerm]);
 
   const totalRevenue    = completedOrders.reduce((s, o) => s + (o.totalPayment   || 0), 0);
   const totalPaid       = completedOrders.reduce((s, o) => s + (o.paymentPaid    || 0), 0);
@@ -234,13 +232,13 @@ const Sales = () => {
                 onChange={onSearchChange}
               />
               {searchTerm && (
-                <button onClick={() => { setSearchTerm(""); setSearchResults(null); }}
+                <button onClick={() => { setSearchTerm(""); dispatch(clearSearch()); }}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                   <X size={14} />
                 </button>
               )}
             </div>
-            <button onClick={() => refetch()}
+            <button onClick={() => dispatch(loadOrders())}
               className="border border-gray-200 dark:border-gray-700
                          text-gray-600 dark:text-gray-300 p-2.5 rounded-xl
                          hover:bg-gray-50 dark:hover:bg-gray-800"
