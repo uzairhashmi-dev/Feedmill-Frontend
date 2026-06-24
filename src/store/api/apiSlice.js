@@ -40,6 +40,52 @@ import {
   deleteOrder as deleteOrderApi,
   searchOrders as searchOrdersApi,
 } from '../../api/orderService'
+import {
+  fetchProfile,
+  updateProfileApi,
+  changePasswordApi,
+} from '../../api/settingService'
+import {
+  fetchInventoryDailyStats,   fetchInventoryWeeklyStats,
+  fetchInventoryMonthlyStats, fetchInventoryYearlyStats,
+  fetchInventoryTotalStats,   fetchInventoryCustomStats,
+  fetchProductionDailyStats,  fetchProductionWeeklyStats,
+  fetchProductionMonthlyStats,fetchProductionYearlyStats,
+  fetchProductionTotalStats,  fetchProductionCustomStats,
+  fetchOrderDailyStats,       fetchOrderWeeklyStats,
+  // aliased — dashboardService also exports fetchOrderMonthlyStats/fetchOrderTotalStats
+  // but they hit different endpoints (/stats/*) than orderService's versions (/order/*)
+  fetchOrderMonthlyStats as fetchDashboardOrderMonthlyStats,
+  fetchOrderYearlyStats,
+  fetchOrderTotalStats as fetchDashboardOrderTotalStats,
+  fetchOrderCustomStats,
+} from '../../api/dashboardService'
+
+// ── Same period-picker logic as the old dashboardSlice
+const getDashboardInventoryStats = (p, s, e) => {
+  if (p === 'daily')  return fetchInventoryDailyStats()
+  if (p === 'weekly') return fetchInventoryWeeklyStats()
+  if (p === 'yearly') return fetchInventoryYearlyStats()
+  if (p === 'total')  return fetchInventoryTotalStats()
+  if (p === 'custom') return fetchInventoryCustomStats(s, e)
+  return fetchInventoryMonthlyStats()
+}
+const getDashboardProductionStats = (p, s, e) => {
+  if (p === 'daily')  return fetchProductionDailyStats()
+  if (p === 'weekly') return fetchProductionWeeklyStats()
+  if (p === 'yearly') return fetchProductionYearlyStats()
+  if (p === 'total')  return fetchProductionTotalStats()
+  if (p === 'custom') return fetchProductionCustomStats(s, e)
+  return fetchProductionMonthlyStats()
+}
+const getDashboardOrderStats = (p, s, e) => {
+  if (p === 'daily')  return fetchOrderDailyStats()
+  if (p === 'weekly') return fetchOrderWeeklyStats()
+  if (p === 'yearly') return fetchOrderYearlyStats()
+  if (p === 'total')  return fetchDashboardOrderTotalStats()
+  if (p === 'custom') return fetchOrderCustomStats(s, e)
+  return fetchDashboardOrderMonthlyStats()
+}
 
 // fakeBaseQuery: we don't use a fetch/axios baseURL here because each endpoint
 // below calls the existing service functions directly (same axios instance,
@@ -47,10 +93,10 @@ import {
 export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: fakeBaseQuery(),
-  tagTypes: ['Category', 'Inventory', 'Formula', 'Production', 'Order'],
+  tagTypes: ['Category', 'Inventory', 'Formula', 'Production', 'Order', 'Profile'],
   endpoints: (builder) => ({
 
-    // ── Category ─────────────────────────────────────────
+    // ── Category 
     getCategories: builder.query({
       queryFn: async () => {
         try {
@@ -121,7 +167,7 @@ export const apiSlice = createApi({
       invalidatesTags: ['Category'],
     }),
 
-    // ── Inventory ────────────────────────────────────────
+    // ── Inventory
     getInventory: builder.query({
       queryFn: async () => {
         try {
@@ -217,7 +263,7 @@ export const apiSlice = createApi({
       invalidatesTags: ['Inventory'],
     }),
 
-    // ── Formula ──────────────────────────────────────────
+    // ── Formula 
     getFormulas: builder.query({
       queryFn: async () => {
         try {
@@ -300,7 +346,7 @@ export const apiSlice = createApi({
       invalidatesTags: ['Formula'],
     }),
 
-    // ── Production ───────────────────────────────────────
+    // ── Production 
     getProductions: builder.query({
       queryFn: async () => {
         try {
@@ -380,7 +426,7 @@ export const apiSlice = createApi({
       invalidatesTags: ['Production'],
     }),
 
-    // ── Order ────────────────────────────────────────────
+    // ── Order 
     getOrders: builder.query({
       queryFn: async () => {
         try {
@@ -463,6 +509,82 @@ export const apiSlice = createApi({
       invalidatesTags: ['Order'],
     }),
 
+    // ── Profile / Settings 
+    getProfile: builder.query({
+      queryFn: async () => {
+        try {
+          const res = await fetchProfile()
+          if (res.success) return { data: res.user }
+          toast.error('Failed to load profile')
+          return { error: 'Failed to load profile' }
+        } catch (err) {
+          toast.error('Failed to load profile')
+          return { error: err.message || 'Failed to load profile' }
+        }
+      },
+      providesTags: ['Profile'],
+    }),
+
+    updateProfile: builder.mutation({
+      queryFn: async (formData) => {
+        try {
+          const res = await updateProfileApi(formData)
+          if (res.success) {
+            toast.success('Profile updated successfully!')
+            window.dispatchEvent(new Event('profile:updated'))
+            return { data: true }
+          }
+          return { data: false }
+        } catch (err) {
+          toast.error(err.response?.data?.message || 'Failed to update profile')
+          return { error: err.response?.data?.message || 'Failed to update profile' }
+        }
+      },
+      invalidatesTags: ['Profile'],
+    }),
+
+    changePassword: builder.mutation({
+      queryFn: async (data) => {
+        try {
+          const res = await changePasswordApi(data)
+          if (res.success) {
+            toast.success('Password changed successfully!')
+            return { data: true }
+          }
+          return { data: false }
+        } catch (err) {
+          toast.error(err.response?.data?.message || 'Failed to change password')
+          return { error: err.response?.data?.message || 'Failed to change password' }
+        }
+      },
+    }),
+
+    // ── Dashboard 
+    getDashboardStats: builder.query({
+      queryFn: async ({ period, customStart = '', customEnd = '' }) => {
+        try {
+          const [invRes, prodRes, ordRes] = await Promise.allSettled([
+            getDashboardInventoryStats(period, customStart, customEnd),
+            getDashboardProductionStats(period, customStart, customEnd),
+            getDashboardOrderStats(period, customStart, customEnd),
+          ])
+          return {
+            data: {
+              inventoryStats:  invRes.status  === 'fulfilled' && invRes.value.success
+                                 ? invRes.value.stats  : null,
+              productionStats: prodRes.status === 'fulfilled' && prodRes.value.success
+                                 ? prodRes.value.stats : null,
+              orderStats:      ordRes.status  === 'fulfilled' && ordRes.value.success
+                                 ? ordRes.value.stats  : null,
+            },
+          }
+        } catch {
+          toast.error('Failed to load dashboard data')
+          return { error: 'Failed to load dashboard data' }
+        }
+      },
+    }),
+
   }),
 })
 
@@ -497,4 +619,10 @@ export const {
   useCreateOrderItemMutation,
   useUpdateOrderItemMutation,
   useDeleteOrderItemMutation,
+
+  useGetProfileQuery,
+  useUpdateProfileMutation,
+  useChangePasswordMutation,
+
+  useGetDashboardStatsQuery,
 } = apiSlice

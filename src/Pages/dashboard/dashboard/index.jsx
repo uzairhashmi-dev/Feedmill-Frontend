@@ -1,46 +1,38 @@
-import { useEffect, useCallback } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { Loader2 } from "lucide-react";
+import { useState, useCallback } from "react";
 import { toast } from "react-hot-toast";
 
-import {
-  fetchDashboardStats,
-  setPeriod, setCustomStart, setCustomEnd,
-  selectPeriod, selectCustomStart, selectCustomEnd,
-  selectInventoryStats, selectProductionStats,
-  selectOrderStats, selectDashboardLoading,
-} from "../../../store/dashboardSlice";
+import { useGetDashboardStatsQuery } from "../../../store/api/apiSlice";
 
 import PeriodSelector   from "./components/PeriodSelector";
 import InventorySection from "./components/InventorySection";
 import ProductionSection from "./components/ProductionSection";
 import OrdersSection    from "./components/OrdersSection";
 import SummaryCharts    from "./components/SummaryCharts";
+import DashboardSkeleton from "./components/DashboardSkeleton";
 
 const Dashboard = () => {
-  const dispatch = useDispatch();
+  // UI-selected period + draft custom dates (typing here doesn't trigger a fetch)
+  const [period,      setPeriod]      = useState("monthly");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd,   setCustomEnd]   = useState("");
 
-  const period          = useSelector(selectPeriod);
-  const customStart     = useSelector(selectCustomStart);
-  const customEnd       = useSelector(selectCustomEnd);
-  const inventoryStats  = useSelector(selectInventoryStats);
-  const productionStats = useSelector(selectProductionStats);
-  const orderStats      = useSelector(selectOrderStats);
-  const loading         = useSelector(selectDashboardLoading);
+  // queryArg only changes when we actually want to fetch — same monthly
+  // default on mount as the old useEffect(() => fetchDashboardStats({period:'monthly'}))
+  const [queryArg, setQueryArg] = useState({ period: "monthly", customStart: "", customEnd: "" });
 
-  // ✅ Same as init() in old hook — monthly on mount
-  useEffect(() => {
-    dispatch(fetchDashboardStats({ period: 'monthly' }));
-  }, [dispatch]);
+  const { data, isFetching: loading } = useGetDashboardStatsQuery(queryArg);
+  const inventoryStats  = data?.inventoryStats  ?? null;
+  const productionStats = data?.productionStats ?? null;
+  const orderStats      = data?.orderStats      ?? null;
 
   // ✅ Same as handlePeriodChange
   const handlePeriodChange = useCallback((newPeriod) => {
-    dispatch(setPeriod(newPeriod));
-    if (newPeriod !== 'custom') {
-      dispatch(fetchDashboardStats({ period: newPeriod }));
+    setPeriod(newPeriod);
+    if (newPeriod !== "custom") {
+      setQueryArg({ period: newPeriod, customStart: "", customEnd: "" });
     }
     // custom → wait for user to pick dates and press Apply
-  }, [dispatch]);
+  }, []);
 
   // ✅ Same as handleCustomApply
   const handleCustomApply = useCallback(() => {
@@ -52,8 +44,8 @@ const Dashboard = () => {
       toast.error("Start date must be before end date");
       return;
     }
-    dispatch(fetchDashboardStats({ period: 'custom', customStart, customEnd }));
-  }, [dispatch, customStart, customEnd]);
+    setQueryArg({ period: "custom", customStart, customEnd });
+  }, [customStart, customEnd]);
 
   return (
     <div className="min-h-screen bg-gray-50/60 dark:bg-transparent
@@ -74,20 +66,15 @@ const Dashboard = () => {
         onPeriodChange={handlePeriodChange}
         customStart={customStart}
         customEnd={customEnd}
-        onCustomStartChange={(v) => dispatch(setCustomStart(v))}
-        onCustomEndChange={(v)   => dispatch(setCustomEnd(v))}
+        onCustomStartChange={(v) => setCustomStart(v)}
+        onCustomEndChange={(v)   => setCustomEnd(v)}
         onCustomApply={handleCustomApply}
         loading={loading}
       />
 
       {/* Loading */}
       {loading && (
-        <div className="flex items-center justify-center py-20">
-          <div className="flex flex-col items-center gap-3 text-gray-400">
-            <Loader2 size={36} className="animate-spin text-emerald-700" />
-            <p className="text-sm dark:text-gray-500">Loading dashboard data…</p>
-          </div>
-        </div>
+       <DashboardSkeleton />
       )}
 
       {/* Content */}

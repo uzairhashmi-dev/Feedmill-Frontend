@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { toast, Toaster } from "react-hot-toast";
 import {
-  Plus, Edit3, Trash2, Loader2, Eye,
+  Plus, Edit3, Trash2, Eye,
   Search, RefreshCw, X, BarChart2,
   ShoppingBag, CheckCircle, Clock, DollarSign, Printer,
 } from "lucide-react";
@@ -21,6 +21,7 @@ import DeleteModal    from "./components/DeleteModal";
 import ViewDrawer     from "./components/ViewDrawer";
 import InvoiceModal   from "./components/InvoiceModal";
 import AnalyticsSection from "./components/AnalyticsSection";
+import OrdersSkeleton from "./components/OrdersSkeleton";
 
 const Sales = () => {
   const { data, isFetching: loading, refetch } = useGetOrdersQuery();
@@ -221,10 +222,7 @@ const Sales = () => {
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-800/60">
               {loading ? (
-                <tr><td colSpan="10" className="py-16 text-center">
-                  <Loader2 size={32} className="animate-spin text-emerald-700 inline" />
-                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Loading orders…</p>
-                </td></tr>
+                <OrdersSkeleton rows={6} />
               ) : orders.length === 0 ? (
                 <EmptyState searching={isSearching} />
               ) : (

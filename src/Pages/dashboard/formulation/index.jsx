@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { toast, Toaster } from "react-hot-toast";
 import {
-  Plus, FlaskConical, Loader2,
+  Plus, FlaskConical,
   Search, RefreshCw, X,
   BarChart2, Package, DollarSign, Tag,
 } from "lucide-react";
@@ -20,6 +20,7 @@ import FormulaModal    from "./components/FormulaModal";
 import DeleteModal     from "./components/DeleteModal";
 import ViewDrawer      from "./components/ViewDrawer";
 import AnalyticsSection from "./components/AnalyticsSection";
+import FormulationSkeleton from "./components/FormulationSkeleton";
 
 const Formulation = () => {
   const { data, isFetching: loading, refetch } = useGetFormulasQuery();
@@ -250,10 +251,7 @@ const Formulation = () => {
         <div className="p-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {loading ? (
-              <div className="col-span-full py-20 flex flex-col items-center gap-3 text-gray-400 dark:text-gray-600">
-                <Loader2 size={36} className="animate-spin text-emerald-700" />
-                <p className="text-sm">Loading formulas…</p>
-              </div>
+             <FormulationSkeleton count={6} />
             ) : formulas.length === 0 ? (
               <EmptyState searching={isSearching} onAdd={openAdd} />
             ) : (

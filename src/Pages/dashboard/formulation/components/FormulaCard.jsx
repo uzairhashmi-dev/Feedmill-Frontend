@@ -9,10 +9,10 @@ const FormulaCard = ({ formula, index, onView, onEdit, onDelete }) => {
     <div className="bg-white dark:bg-gray-900
                     border border-gray-100 dark:border-gray-800
                     rounded-2xl shadow-sm hover:shadow-md transition-all group overflow-hidden">
-      <div className={`bg-gradient-to-r ${accent} h-1.5`} />
+      <div className={`bg-linear-to-r ${accent} h-1.5`} />
       <div className="p-5">
         <div className="flex justify-between items-start mb-3">
-          <span className={`bg-gradient-to-r ${accent} text-white text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wide`}>
+          <span className={`bg-linear-to-r ${accent} text-white text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wide`}>
             {formula.formulaCode || "N/A"}
           </span>
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

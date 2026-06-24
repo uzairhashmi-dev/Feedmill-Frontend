@@ -1,7 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { Toaster } from "react-hot-toast";
-import { toast } from "react-hot-toast";
+import { toast, Toaster } from "react-hot-toast";
 import {
   User, Lock, Camera, Loader2,
   Eye, EyeOff, Save, Shield,
@@ -9,11 +7,10 @@ import {
   CheckCircle,
 } from "lucide-react";
 
+import SettingsSkeleton from "./components/SettingsSkeleton";
 import {
-  loadProfile, updateProfile, changePassword,
-  selectProfile, selectLoadingProfile,
-  selectUpdatingProfile, selectChangingPassword,
-} from "../../../store/settingSlice";
+  useGetProfileQuery, useUpdateProfileMutation, useChangePasswordMutation,
+} from "../../../store/api/apiSlice";
 
 // ── Avatar
 const Avatar = ({ imagePreview, fullname, onClick }) => (
@@ -23,7 +20,7 @@ const Avatar = ({ imagePreview, fullname, onClick }) => (
       <img src={imagePreview} alt="Profile"
         className="w-24 h-24 rounded-2xl object-cover shadow-md" />
     ) : (
-      <div className="w-24 h-24 rounded-2xl bg-gradient-to-br
+      <div className="w-24 h-24 rounded-2xl bg-linear-to-br
                       from-emerald-600 to-emerald-400
                       flex items-center justify-center shadow-md">
         <span className="text-white font-black text-3xl">
@@ -115,13 +112,11 @@ const SectionCard = ({ title, icon, children }) => (
 
 // ── Main Settings Page
 const Settings = () => {
-  const dispatch         = useDispatch();
-  const fileInputRef     = useRef(null);
+  const fileInputRef = useRef(null);
 
-  const profile          = useSelector(selectProfile);
-  const loadingProfile   = useSelector(selectLoadingProfile);
-  const updatingProfile  = useSelector(selectUpdatingProfile);
-  const changingPassword = useSelector(selectChangingPassword);
+  const { data: profile, isLoading: loadingProfile } = useGetProfileQuery();
+  const [updateProfile, { isLoading: updatingProfile }] = useUpdateProfileMutation();
+  const [changePassword, { isLoading: changingPassword }] = useChangePasswordMutation();
 
   const [profileForm, setProfileForm] = useState({
     fullname: "", username: "", email: "", phone: "", address: "",
@@ -135,22 +130,20 @@ const Settings = () => {
     old: false, new: false, confirm: false,
   });
 
-  // Load profile on mount — set form in .then() to avoid useEffect setState warning
+  // Sync form whenever profile data is (re)loaded — covers both the initial
+  // fetch and the auto-refetch that happens after a successful profile update
   useEffect(() => {
-    dispatch(loadProfile()).then((result) => {
-      if (result?.payload) {
-        const user = result.payload;
-        setProfileForm({
-          fullname: user.fullname || "",
-          username: user.username || "",
-          email:    user.email    || "",
-          phone:    user.phone    || "",
-          address:  user.address  || "",
-        });
-        setImagePreview(user.profile || null);
-      }
-    });
-  }, [dispatch]);
+    if (profile) {
+      setProfileForm({
+        fullname: profile.fullname || "",
+        username: profile.username || "",
+        email:    profile.email    || "",
+        phone:    profile.phone    || "",
+        address:  profile.address  || "",
+      });
+      setImagePreview(profile.profile || null);
+    }
+  }, [profile]);
 
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
@@ -177,23 +170,14 @@ const Settings = () => {
     if (profileForm.address)  fd.append("address",  profileForm.address);
     if (selectedImage)        fd.append("profile",  selectedImage);
 
-    const result = await dispatch(updateProfile(fd));
-    if (result?.payload === true) {
-      setSelectedImage(null);
-      // Refresh form with updated profile
-      dispatch(loadProfile()).then((res) => {
-        if (res?.payload) {
-          const user = res.payload;
-          setProfileForm({
-            fullname: user.fullname || "",
-            username: user.username || "",
-            email:    user.email    || "",
-            phone:    user.phone    || "",
-            address:  user.address  || "",
-          });
-          setImagePreview(user.profile || null);
-        }
-      });
+    try {
+      const success = await updateProfile(fd).unwrap();
+      if (success === true) {
+        setSelectedImage(null);
+        // profile tag invalidated → getProfile auto-refetches → useEffect above re-syncs the form
+      }
+    } catch {
+      // error toast already shown by apiSlice
     }
   };
 
@@ -211,9 +195,13 @@ const Settings = () => {
     if (oldPassword === newPassword) {
       toast.error("New password cannot be same as old password"); return;
     }
-    const result = await dispatch(changePassword({ oldPassword, newPassword }));
-    if (result?.payload === true) {
-      setPasswordForm({ oldPassword: "", newPassword: "", confirmPassword: "" });
+    try {
+      const success = await changePassword({ oldPassword, newPassword }).unwrap();
+      if (success === true) {
+        setPasswordForm({ oldPassword: "", newPassword: "", confirmPassword: "" });
+      }
+    } catch {
+      // error toast already shown by apiSlice
     }
   };
 
@@ -225,15 +213,7 @@ const Settings = () => {
     setShowPasswords((p) => ({ ...p, [field]: !p[field] }));
 
   if (loadingProfile) {
-    return (
-      <div className="min-h-screen bg-gray-50/60 dark:bg-transparent
-                      flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-gray-400">
-          <Loader2 size={36} className="animate-spin text-emerald-700" />
-          <p className="text-sm">Loading settings…</p>
-        </div>
-      </div>
-    );
+  return <SettingsSkeleton />;
   }
 
   return (

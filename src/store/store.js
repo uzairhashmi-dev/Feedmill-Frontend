@@ -1,28 +1,44 @@
+// import { configureStore } from '@reduxjs/toolkit'
+// import { apiSlice } from './api/apiSlice'
+// import themeReducer     from './themeSlice'
+// import authReducer      from './authSlice'
+// import dashboardReducer from './dashboardSlice'
+// import inventoryReducer from './inventorySlice'
+// import categoryReducer  from './categorySlice'
+// import formulaReducer   from './formulaSlice'
+// import productionReducer from './productionSlice'
+// import customerReducer  from './customerSlice'
+// import orderReducer     from './orderSlice'
+// import settingReducer   from './settingSlice'
+
+// export const store = configureStore({
+//   reducer: {
+//     theme:     themeReducer,
+//     auth:      authReducer,
+//     dashboard: dashboardReducer,
+//     inventory: inventoryReducer,
+//     category:  categoryReducer,
+//     formula:   formulaReducer, 
+//     production: productionReducer,
+//     customer:  customerReducer,
+//     order:     orderReducer,
+//     setting:    settingReducer,
+//     [apiSlice.reducerPath]: apiSlice.reducer,
+//   },
+//   middleware: (getDefaultMiddleware) =>
+//     getDefaultMiddleware().concat(apiSlice.middleware),
+// })
+// export default store
+
 import { configureStore } from '@reduxjs/toolkit'
 import { apiSlice } from './api/apiSlice'
-import themeReducer     from './themeSlice'
-import authReducer      from './authSlice'
-import dashboardReducer from './dashboardSlice'
-import inventoryReducer from './inventorySlice'
-import categoryReducer  from './categorySlice'
-import formulaReducer   from './formulaSlice'
-import productionReducer from './productionSlice'
-import customerReducer  from './customerSlice'
-import orderReducer     from './orderSlice'
-import settingReducer   from './settingSlice'
+import themeReducer from './themeSlice'
+import authReducer  from './authSlice'
 
 export const store = configureStore({
   reducer: {
-    theme:     themeReducer,
-    auth:      authReducer,
-    dashboard: dashboardReducer,
-    inventory: inventoryReducer,
-    category:  categoryReducer,
-    formula:   formulaReducer, 
-    production: productionReducer,
-    customer:  customerReducer,
-    order:     orderReducer,
-    setting:    settingReducer,
+    theme: themeReducer,
+    auth:  authReducer,
     [apiSlice.reducerPath]: apiSlice.reducer,
   },
   middleware: (getDefaultMiddleware) =>

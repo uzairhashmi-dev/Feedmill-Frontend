@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { toast, Toaster } from "react-hot-toast";
 import {
-  Plus, Loader2, FolderTree, Search,
+  Plus, FolderTree, Search,
   X, RefreshCw, AlertCircle, BarChart2,
   CheckCircle, Clock,
 } from "lucide-react";
@@ -19,6 +19,7 @@ import DeleteModal     from "./components/DeleteModal";
 import CategoryModal   from "./components/CategoryModal";
 import CategoryCard    from "./components/CategoryCard";
 import AnalyticsSection from "./components/AnalyticsSection";
+import CategorySkeleton from "./components/CategorySkeleton";
 
 const Category = () => {
   const { data: allCategories = [], isFetching: loading, refetch } = useGetCategoriesQuery();
@@ -210,11 +211,8 @@ const Category = () => {
         <div className="p-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {loading ? (
-              <div className="col-span-full py-20 flex flex-col items-center gap-3 text-gray-400">
-                <Loader2 size={36} className="animate-spin text-emerald-700" />
-                <p className="text-sm dark:text-gray-500">Loading categories…</p>
-              </div>
-            ) : categories.length === 0 ? (
+              <CategorySkeleton count={6} />
+              ) : categories.length === 0 ? (
               <EmptyState searching={isSearching} />
             ) : (
               categories.map((cat, i) => (

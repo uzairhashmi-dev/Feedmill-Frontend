@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Toaster } from "react-hot-toast";
 import {
-  Trash2, Loader2, Eye,
+  Trash2, Eye,
   Search, RefreshCw, X, BarChart2,
   CheckCircle, DollarSign,
   TrendingUp, Package, AlertTriangle,
@@ -18,6 +18,7 @@ import DeleteModal from "../orders/components/DeleteModal";
 import ViewDrawer  from "../orders/components/ViewDrawer";
 import StockCard      from "./components/StockCard";
 import SalesAnalytics from "./components/SalesAnalytics";
+import SalesSkeleton  from "./components/SalesSkeleton";
 
 const Sales = () => {
   const { data, isFetching: loading, refetch } = useGetOrdersQuery();
@@ -268,10 +269,7 @@ const Sales = () => {
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-800/60">
               {loading ? (
-                <tr><td colSpan="10" className="py-16 text-center">
-                  <Loader2 size={32} className="animate-spin text-emerald-700 inline" />
-                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Loading…</p>
-                </td></tr>
+                <SalesSkeleton rows={6} />
               ) : displayOrders.length === 0 ? (
                 <tr><td colSpan="10" className="py-16 text-center">
                   <CheckCircle size={40} strokeWidth={1} className="mx-auto mb-3 text-gray-300 dark:text-gray-700" />

@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { toast, Toaster } from "react-hot-toast";
 import {
-  Plus, Trash2, Loader2, Eye, Edit3,
+  Plus, Trash2, Eye, Edit3,
   Search, RefreshCw, BarChart2,
   Play, CheckCircle, Clock, DollarSign, X,
 } from "lucide-react";
@@ -19,6 +19,7 @@ import DeleteModal   from "./components/DeleteModal";
 import BatchModal    from "./components/BatchModal";
 import ViewDrawer    from "./components/ViewDrawer";
 import AnalyticsSection from "./components/AnalyticsSection";
+import ProductionSkeleton from "./components/ProductionSkeleton";
 
 const Production = () => {
   const { data, isFetching: loading, refetch } = useGetProductionsQuery();
@@ -241,12 +242,7 @@ const Production = () => {
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-800/60">
               {loading ? (
-                <tr>
-                  <td colSpan="7" className="py-16 text-center">
-                    <Loader2 size={32} className="animate-spin text-emerald-700 inline" />
-                    <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Loading batches…</p>
-                  </td>
-                </tr>
+               <ProductionSkeleton rows={6} />
               ) : productions.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="py-20 text-center">
