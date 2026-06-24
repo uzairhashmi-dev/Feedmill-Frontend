@@ -36,15 +36,15 @@ const DashboardSkeleton = () => (
           <Skeleton className="h-4.5 w-4.5 rounded" />
           <Skeleton className="h-4 w-32" />
         </div>
-        <Skeleton className="h-[200px] w-full rounded-xl" />
+        <Skeleton className="h-50 w-full rounded-xl" />
       </div>
       <div className={cardClass}>
         <Skeleton className="h-4 w-28 mb-4" />
-        <Skeleton className="h-[200px] w-full rounded-full mx-auto" style={{ maxWidth: 200 }} />
+        <Skeleton className="h-50 w-full rounded-full mx-auto" style={{ maxWidth: 200 }} />
       </div>
       <div className={cardClass}>
         <Skeleton className="h-4 w-28 mb-4" />
-        <Skeleton className="h-[200px] w-full rounded-full mx-auto" style={{ maxWidth: 200 }} />
+        <Skeleton className="h-50 w-full rounded-full mx-auto" style={{ maxWidth: 200 }} />
       </div>
     </div>
 

@@ -141,7 +141,6 @@ const Settings = () => {
         phone:    profile.phone    || "",
         address:  profile.address  || "",
       });
-      setImagePreview(profile.profile || null);
     }
   }, [profile]);
 
