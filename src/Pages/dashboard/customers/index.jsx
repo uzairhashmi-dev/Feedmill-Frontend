@@ -245,7 +245,7 @@ const Customers = () => {
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-xl
-                                        bg-gradient-to-br from-emerald-600 to-emerald-400
+                                        bg-linear-to-br from-emerald-600 to-emerald-400
                                         flex items-center justify-center shrink-0">
                           <span className="text-white font-bold text-sm">
                             {customer.customerName.charAt(0).toUpperCase()}
@@ -339,11 +339,6 @@ const Customers = () => {
 };
 
 export default Customers;
-
-
-
-
-
 
 // import { useEffect, useState, useRef, useCallback } from "react";
 // import { useDispatch, useSelector } from "react-redux";

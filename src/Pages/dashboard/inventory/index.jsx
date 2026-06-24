@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { Toaster } from "react-hot-toast";
 import {
-  Plus, Edit3, Trash2, Loader2,
+  Plus, Edit3, Trash2,
   CheckCircle, Clock, DollarSign,
   Search, Filter, X, BarChart2,
   ShoppingCart, RefreshCw,
@@ -20,6 +20,7 @@ import FilterPanel     from "./components/FilterPanel";
 import ItemModal       from "./components/ItemModal";
 import DeleteModal     from "./components/DeleteModal";
 import AnalyticsSection from "./components/AnalyticsSection";
+import InventorySkeleton from "./components/InventorySkeleton";
 
 const Inventory = () => {
   const { data, isFetching: loading, refetch } = useGetInventoryQuery();
@@ -244,13 +245,9 @@ const Inventory = () => {
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-800/60">
               {loading ? (
-                <tr>
-                  <td colSpan="7" className="py-16 text-center">
-                    <Loader2 className="animate-spin inline text-emerald-700" size={32} />
-                    <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Loading inventory…</p>
-                  </td>
-                </tr>
-              ) : items.length === 0 ? (
+
+             <InventorySkeleton rows={6} />
+               ) : items.length === 0 ? (
                 <EmptyState searching={isSearching} />
               ) : (
                 items.map((item, idx) => {

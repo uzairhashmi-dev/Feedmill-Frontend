@@ -150,7 +150,7 @@ const Sales = () => {
       </div>
 
       {/* Total Feed Delivered banner */}
-      <div className="bg-gradient-to-r from-emerald-800 to-emerald-600
+      <div className="bg-linear-to-r from-emerald-800 to-emerald-600
                       rounded-2xl p-5 mb-6
                       flex flex-col sm:flex-row justify-between
                       items-start sm:items-center gap-4">
@@ -370,7 +370,6 @@ const Sales = () => {
 };
 
 export default Sales;
-
 
 
 // import { useEffect, useState, useRef, useCallback } from "react";
