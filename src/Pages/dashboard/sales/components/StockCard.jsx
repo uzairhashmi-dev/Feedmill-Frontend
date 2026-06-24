@@ -44,7 +44,7 @@ const StockCard = ({ s }) => {
 
       <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all"
+          className="h-full bg-linear-to-r from-amber-400 to-amber-500 rounded-full transition-all"
           style={{ width: `${Math.min(soldPct, 100)}%` }}
         />
       </div>

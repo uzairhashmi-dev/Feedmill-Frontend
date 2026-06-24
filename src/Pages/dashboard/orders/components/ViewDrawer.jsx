@@ -11,7 +11,7 @@ const ViewDrawer = ({ order, onClose, onEdit }) => {
                       border-l border-transparent dark:border-gray-800
                       w-full sm:max-w-md h-full flex flex-col shadow-2xl">
 
-        <div className="bg-gradient-to-r from-emerald-800 to-emerald-600 p-6 shrink-0">
+        <div className="bg-linear-to-r from-emerald-800 to-emerald-600 p-6 shrink-0">
           <div className="flex justify-between items-start">
             <div className="flex-1 min-w-0">
               <h3 className="text-2xl font-black text-white leading-tight truncate">{order.customerName}</h3>
