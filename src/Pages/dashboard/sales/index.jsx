@@ -11,7 +11,7 @@ import {
 import {
   useGetOrdersQuery, useLazySearchOrdersQuery,
   useDeleteOrderItemMutation,
-} from "../../../store/api/apiSlice";
+} from "../../../store/api/orderApi";
 
 import StatCard    from "../orders/components/StatCard";
 import DeleteModal from "../orders/components/DeleteModal";

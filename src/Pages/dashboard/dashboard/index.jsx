@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { toast } from "react-hot-toast";
 
-import { useGetDashboardStatsQuery } from "../../../store/api/apiSlice";
+import { useGetDashboardStatsQuery } from "../../../store/api/dashboardApi";
 
 import PeriodSelector   from "./components/PeriodSelector";
 import InventorySection from "./components/InventorySection";

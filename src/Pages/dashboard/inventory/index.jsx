@@ -11,7 +11,7 @@ import {
   useGetInventoryQuery, useLazySearchInventoryItemsQuery,
   useLazyFilterInventoryItemsQuery, useCreateInventoryItemMutation,
   useUpdateInventoryItemMutation, useDeleteInventoryItemMutation,
-} from "../../../store/api/apiSlice";
+} from "../../../store/api/inventoryApi";
 
 import { STATUS_COLORS, EMPTY_FORM } from "./constants";
 import StatCard        from "./components/StatCard";

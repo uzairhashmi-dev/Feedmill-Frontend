@@ -10,7 +10,7 @@ import {
   useGetFormulasQuery, useLazySearchFormulasQuery,
   useCreateFormulaItemMutation, useUpdateFormulaItemMutation,
   useDeleteFormulaItemMutation,
-} from "../../../store/api/apiSlice";
+} from "../../../store/api/formulaApi";
 
 import { EMPTY_FORM } from "./constants";
 import StatCard        from "./components/StatCard";

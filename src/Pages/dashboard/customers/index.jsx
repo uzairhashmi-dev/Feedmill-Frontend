@@ -8,7 +8,7 @@ import {
 
 import {
   useGetOrdersQuery, useLazySearchOrdersQuery,
-} from "../../../store/api/apiSlice";
+} from "../../../store/api/orderApi";
 
 import StatCard        from "./components/StatCard";
 import PaymentBadge    from "./components/PaymentBadge";

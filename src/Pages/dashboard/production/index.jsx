@@ -10,7 +10,7 @@ import {
   useGetProductionsQuery, useLazySearchProductionsQuery,
   useCreateProductionItemMutation, useUpdateProductionItemMutation,
   useDeleteProductionItemMutation,
-} from "../../../store/api/apiSlice";
+} from "../../../store/api/productionApi";
 
 import { EMPTY_FORM } from "./constants";
 import StatCard      from "./components/StatCard";

@@ -10,7 +10,7 @@ import {
   useGetOrdersQuery, useLazySearchOrdersQuery,
   useCreateOrderItemMutation, useUpdateOrderItemMutation,
   useDeleteOrderItemMutation,
-} from "../../../store/api/apiSlice";
+} from "../../../store/api/orderApi";
 
 import { EMPTY_FORM } from "./constants";
 import StatCard       from "./components/StatCard";

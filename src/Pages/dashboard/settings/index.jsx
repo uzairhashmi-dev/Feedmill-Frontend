@@ -10,7 +10,7 @@ import {
 import SettingsSkeleton from "./components/SettingsSkeleton";
 import {
   useGetProfileQuery, useUpdateProfileMutation, useChangePasswordMutation,
-} from "../../../store/api/apiSlice";
+} from "../../../store/api/settingApi";
 
 // ── Avatar
 const Avatar = ({ imagePreview, fullname, onClick }) => (

@@ -10,7 +10,7 @@ import {
   useGetCategoriesQuery, useLazySearchCategoriesQuery,
   useCreateCategoryMutation, useUpdateCategoryMutation,
   useDeleteCategoryMutation,
-} from "../../../store/api/apiSlice";
+} from "../../../store/api/categoryApi";
 
 import { EMPTY_FORM } from "./constants";
 import StatCard        from "./components/StatCard";
