@@ -12,7 +12,6 @@ import { fetchAllFormulas } from '../../api/formulaService'
 
 export const orderApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-
     getOrders: builder.query({
       queryFn: async () => {
         try {
@@ -98,11 +97,10 @@ export const orderApi = apiSlice.injectEndpoints({
   }),
   overrideExisting: false,
 })
-
 export const {
   useGetOrdersQuery,
   useLazySearchOrdersQuery,
   useCreateOrderItemMutation,
   useUpdateOrderItemMutation,
   useDeleteOrderItemMutation,
-} = orderApi
+} = orderApi 

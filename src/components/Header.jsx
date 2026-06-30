@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -10,7 +10,7 @@ import {
 import { selectUser }        from "../store/authSlice";
 import { logoutThunk }       from "../store/authSlice";
 import { toggleTheme, selectThemeMode } from "../store/themeSlice";
-import { fetchProfile }      from "../api/settingService";
+import { useGetProfileQuery } from "../store/api/settingApi";
 
 const TITLES = {
   "/dashboard":   { main: "Dashboard",   sub: "Overview of your mill"   },
@@ -33,45 +33,26 @@ export default function Header({ onMenuClick, collapsed, onCollapseClick }) {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const [dropOpen,    setDropOpen]    = useState(false);
-  const [profileImg,  setProfileImg]  = useState(null);
+  const [dropOpen, setDropOpen] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
-  // ── Fetch profile photo on mount (same as before)
-  useEffect(() => {
-    const loadPhoto = async () => {
-      try {
-        const res = await fetchProfile();
-        if (res.success && res.user?.profile) setProfileImg(res.user.profile);
-      } catch { /* silently fail — show initials */ }
-    };
-    loadPhoto();
-  }, []);
-
-  // ── Re-fetch when settings page updates profile (same event as before)
-  useEffect(() => {
-    const handleProfileUpdate = async () => {
-      try {
-        const res = await fetchProfile();
-        if (res.success && res.user?.profile) setProfileImg(res.user.profile);
-      } catch { /* ignore */ }
-    };
-    window.addEventListener("profile:updated", handleProfileUpdate);
-    return () => window.removeEventListener("profile:updated", handleProfileUpdate);
-  }, []);
+  // (invalidatesTags: ['Profile']), so Header always stays in sync.
+  const { data: profile } = useGetProfileQuery();
+  const profileImg = profile?.profile || null;
 
   const currentPath = TITLES[location.pathname]
     || { main: "FeedMill Pro", sub: "ERP System" };
 
-  // ✅ logout: dispatch thunk instead of calling logoutUser() + logout()
+  // logout: dispatch thunk instead of calling logoutUser() + logout()
   const handleLogout = async () => {
     await dispatch(logoutThunk());
     navigate("/login", { replace: true });
   };
 
-  // user shape: { id, fullname, username, email, role }
-  const initials = user?.fullname
-    ? user.fullname.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
-    : user?.username?.[0]?.toUpperCase() || "AM";
+  // profile shape: { fullname, username, email, role, profile, ... }
+  const initials = profile?.fullname
+    ? profile.fullname.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
+    : profile?.username?.[0]?.toUpperCase() || user?.username?.[0]?.toUpperCase() || "AM";
 
   return (
     <header className="h-20 bg-white dark:bg-gray-900
@@ -88,7 +69,6 @@ export default function Header({ onMenuClick, collapsed, onCollapseClick }) {
       >
         <Menu size={18} className="w-10 h-8" />
       </button>
-
       {/* Collapse button */}
       <button
         onClick={onCollapseClick}
@@ -101,7 +81,6 @@ export default function Header({ onMenuClick, collapsed, onCollapseClick }) {
           ? <PanelLeftOpen  size={20} />
           : <PanelLeftClose size={20} />}
       </button>
-
       {/* Page title */}
       <div className="flex-1 min-w-0">
         <h1 className="text-lg sm:text-2xl font-bold
@@ -131,15 +110,6 @@ export default function Header({ onMenuClick, collapsed, onCollapseClick }) {
             : <Moon size={20} />}
         </button>
 
-        {/* Notification bell */}
-        <button className="relative p-2 text-gray-500 dark:text-gray-400
-                           hover:bg-gray-50 dark:hover:bg-gray-800
-                           rounded-xl transition-colors">
-          <Bell size={22} />
-          <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500
-                           rounded-full border-2 border-white dark:border-gray-900" />
-        </button>
-
         {/* User dropdown */}
         <div className="relative">
           <button
@@ -148,13 +118,13 @@ export default function Header({ onMenuClick, collapsed, onCollapseClick }) {
                        hover:bg-gray-50 dark:hover:bg-gray-800
                        rounded-xl p-1 transition-colors"
           >
-            {profileImg ? (
+            {profileImg && !imgError ? (
               <img
                 src={profileImg}
                 alt="Profile"
                 className="w-8 h-8 rounded-full object-cover shrink-0
                            border-2 border-emerald-100"
-                onError={() => setProfileImg(null)}
+                onError={() => setImgError(true)}
               />
             ) : (
               <div className="w-8 h-8 rounded-full bg-[#1c3a1c] text-white
@@ -182,13 +152,13 @@ export default function Header({ onMenuClick, collapsed, onCollapseClick }) {
                 <div className="px-4 py-3
                                 border-b border-gray-50 dark:border-gray-800
                                 flex items-center gap-3">
-                  {profileImg ? (
+                  {profileImg && !imgError ? (
                     <img
                       src={profileImg}
                       alt="Profile"
                       className="w-9 h-9 rounded-full object-cover shrink-0
                                  border-2 border-emerald-100"
-                      onError={() => setProfileImg(null)}
+                      onError={() => setImgError(true)}
                     />
                   ) : (
                     <div className="w-9 h-9 rounded-full bg-[#1c3a1c]
@@ -200,10 +170,10 @@ export default function Header({ onMenuClick, collapsed, onCollapseClick }) {
                   <div className="min-w-0">
                     <p className="text-sm font-bold
                                   text-gray-800 dark:text-white truncate">
-                      {user?.fullname || user?.username || "Admin"}
+                      {profile?.fullname || profile?.username || user?.fullname || "Admin"}
                     </p>
                     <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
-                      {user?.email || "admin@feedmill.com"}
+                      {profile?.email || user?.email || "admin@feedmill.com"}
                     </p>
                   </div>
                 </div>

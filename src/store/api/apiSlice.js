@@ -1,5 +1,4 @@
 import { createApi, fakeBaseQuery } from '@reduxjs/toolkit/query/react'
-
 // Base API slice — intentionally empty here.
 // Each feature file (categoryApi.js, inventoryApi.js, formulaApi.js,
 // productionApi.js, orderApi.js, settingApi.js, dashboardApi.js) injects its

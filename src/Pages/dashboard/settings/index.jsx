@@ -35,7 +35,6 @@ const Avatar = ({ imagePreview, fullname, onClick }) => (
     </div>
   </div>
 );
-
 // ── Role Badge
 const RoleBadge = ({ role }) => (
   <span className={`inline-flex items-center gap-1.5 px-3 py-1
@@ -91,7 +90,6 @@ const InputField = ({ label, icon, type = "text", value, onChange,
     </div>
   </div>
 );
-
 // ── Section Card
 const SectionCard = ({ title, icon, children }) => (
   <div className="bg-white dark:bg-gray-900
@@ -109,7 +107,6 @@ const SectionCard = ({ title, icon, children }) => (
     <div className="p-6">{children}</div>
   </div>
 );
-
 // ── Main Settings Page
 const Settings = () => {
   const fileInputRef = useRef(null);
@@ -130,8 +127,6 @@ const Settings = () => {
     old: false, new: false, confirm: false,
   });
 
-  // Sync form whenever profile data is (re)loaded — covers both the initial
-  // fetch and the auto-refetch that happens after a successful profile update
   useEffect(() => {
     if (profile) {
       setProfileForm({

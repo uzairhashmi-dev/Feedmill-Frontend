@@ -149,7 +149,6 @@ const Sales = () => {
           </div>
         ))}
       </div>
-
       {/* Total Feed Delivered banner */}
       <div className="bg-linear-to-r from-emerald-800 to-emerald-600
                       rounded-2xl p-5 mb-6
@@ -201,7 +200,6 @@ const Sales = () => {
           </div>
         </div>
       )}
-
       {/* Delivered Orders Table */}
       <div className="bg-white dark:bg-gray-900
                       rounded-2xl shadow-sm

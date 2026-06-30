@@ -10,7 +10,6 @@ import {
 
 export const categoryApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-
     getCategories: builder.query({
       queryFn: async () => {
         try {
