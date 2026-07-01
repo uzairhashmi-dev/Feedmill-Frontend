@@ -119,13 +119,13 @@ const Settings = () => {
     fullname: "", username: "", email: "", phone: "", address: "",
   });
   const [selectedImage,  setSelectedImage]  = useState(null);
-  const [imagePreview,   setImagePreview]   = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [passwordForm,   setPasswordForm]   = useState({
     oldPassword: "", newPassword: "", confirmPassword: "",
   });
   const [showPasswords, setShowPasswords] = useState({
     old: false, new: false, confirm: false,
-  });
+  }); 
 
   useEffect(() => {
     if (profile) {
@@ -136,6 +136,7 @@ const Settings = () => {
         phone:    profile.phone    || "",
         address:  profile.address  || "",
       });
+      setImagePreview(profile.profile || null);
     }
   }, [profile]);
 
